@@ -71,13 +71,13 @@ export const terrainSources: TerrainSource[] = [
     coverage: "Global (90°N – 90°S)",
   },
   {
-    id: "aws-terrain-tif",
-    nameEn: "AWS Terrain Tiles (GeoTIFF)",
-    nameTr: "AWS Terrain Tiles (GeoTIFF)",
-    resolution: "~30m (varies by zoom)",
-    descriptionEn: "Mapzen/Tilezen terrain tiles in GeoTIFF. Tiled by zoom/x/y.",
-    descriptionTr: "GeoTIFF formatında Mapzen/Tilezen terrain tile'ları. Zoom/x/y bazlı.",
-    formats: [{ id: "tif", label: "GeoTIFF (.tif)", ext: ".tif", mime: "image/tiff" }],
+    id: "viewfinder-90m",
+    nameEn: "ViewFinder Panoramas 90m (HGT)",
+    nameTr: "ViewFinder Panoramas 90m (HGT)",
+    resolution: "~90m (3 arc-second)",
+    descriptionEn: "Void-filled SRTM3 from ViewFinderPanoramas. HGT in ZIP.",
+    descriptionTr: "ViewFinderPanoramas'dan boşluksuz SRTM3. ZIP içinde HGT.",
+    formats: [{ id: "hgt-zip", label: "HGT (.hgt.zip)", ext: ".hgt.zip", mime: "application/zip" }],
     coverage: "Global",
   },
 ];
@@ -107,9 +107,12 @@ export function getCopernicusDEMUrl(lat: number, lng: number, resolution: "30m" 
   const absLat = pad2(Math.abs(lat));
   const absLng = pad3(Math.abs(lng));
   const res = resolution === "30m" ? "10" : "30";
-  const bucket = resolution === "30m" ? "copernicus-dem-30m" : "copernicus-dem-90m";
   const tileId = `Copernicus_DSM_COG_${res}_${ns}${absLat}_00_${ew}${absLng}_00_DEM`;
-  return `https://${bucket}.s3.eu-central-1.amazonaws.com/${tileId}/${tileId}.tif`;
+  // 30m bucket: no region needed; 90m bucket: eu-central-1
+  const baseUrl = resolution === "30m"
+    ? `https://copernicus-dem-30m.s3.amazonaws.com`
+    : `https://copernicus-dem-90m.s3.eu-central-1.amazonaws.com`;
+  return `${baseUrl}/${tileId}/${tileId}.tif`;
 }
 
 // ── AWS Terrain Tiles GeoTIFF (zoom/x/y) ──────────────────────────────────
@@ -155,6 +158,10 @@ export function getTerrainTilesForBbox(
           url = getCopernicusDEMUrl(lat, lng, "90m");
           format = "tif";
           break;
+        case "viewfinder-90m":
+          url = `https://bailu.ch/dem3/${ns}${absLat}/${ns}${absLat}${ew}${absLng}.hgt.zip`;
+          format = "hgt-zip";
+          break;
         default:
           url = getSRTMHGTUrl(lat, lng);
           format = "hgt";
@@ -180,7 +187,7 @@ export function estimateTerrainTileSize(sourceId: string): number {
     case "srtm-hgt": return 2.8 * 1024 * 1024; // ~2.8 MB compressed HGT
     case "copernicus-30m": return 5.5 * 1024 * 1024; // ~5.5 MB COG
     case "copernicus-90m": return 0.8 * 1024 * 1024; // ~0.8 MB COG
-    case "aws-terrain-tif": return 0.03 * 1024 * 1024; // ~30 KB per tile
+    case "viewfinder-90m": return 2.5 * 1024 * 1024; // ~2.5 MB zipped HGT
     default: return 2.8 * 1024 * 1024;
   }
 }
@@ -190,8 +197,8 @@ export function getTerrainFileExt(sourceId: string): string {
   switch (sourceId) {
     case "srtm-hgt": return ".hgt.gz";
     case "copernicus-30m":
-    case "copernicus-90m":
-    case "aws-terrain-tif": return ".tif";
+    case "copernicus-90m": return ".tif";
+    case "viewfinder-90m": return ".hgt.zip";
     default: return ".hgt.gz";
   }
 }
