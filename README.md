@@ -8,12 +8,22 @@ Demo ve test için GIS verisi bulmakta zorlanıyorsanız, bu uygulama tam size g
 
 ## Hızlı Başlangıç
 
+### Linux / macOS
+
 ```bash
 git clone <repo-url> && cd gis-demo-helper
 chmod +x setup.sh && ./setup.sh
 ```
 
-`setup.sh` tek komutla bağımlılıkları yükler, projeyi derler ve başlatır.
+### Windows (CMD veya PowerShell)
+
+```cmd
+git clone <repo-url>
+cd gis-demo-helper
+setup.bat
+```
+
+Kurulum scriptleri tek komutla: Node.js kontrol, bağımlılık yükleme, build ve başlatma yapar.
 
 ### Manuel Kurulum
 
@@ -77,7 +87,8 @@ Tüm uydu görüntüleri Cloud-Optimized GeoTIFF (COG) formatındadır. Doğruda
 
 ```
 gis-demo-helper/
-├── setup.sh                    # Tek komutla kurulum
+├── setup.sh                    # Tek komutla kurulum (Linux/macOS)
+├── setup.bat                   # Tek komutla kurulum (Windows)
 ├── package.json                # Next.js 15, React 19, Leaflet
 ├── .env.local                  # Sadece Overpass URL (opsiyonel)
 │
