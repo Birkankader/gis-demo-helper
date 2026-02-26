@@ -13,6 +13,7 @@ interface AppState {
   activePreset: string;
   exportFormat: ExportFormat;
   previewData: GeoJSON.FeatureCollection | null;
+  previewWms: { url: string; layers: string } | null;
   isLoading: boolean;
   downloads: DownloadItem[];
   sidebarOpen: boolean;
@@ -29,6 +30,7 @@ type AppAction =
   | { type: "SET_PRESET"; payload: string }
   | { type: "SET_FORMAT"; payload: ExportFormat }
   | { type: "SET_PREVIEW"; payload: GeoJSON.FeatureCollection | null }
+  | { type: "SET_PREVIEW_WMS"; payload: { url: string; layers: string } | null }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "ADD_DOWNLOAD"; payload: DownloadItem }
   | { type: "UPDATE_DOWNLOAD"; payload: { id: string; updates: Partial<DownloadItem> } }
@@ -46,6 +48,7 @@ const initialState: AppState = {
   activePreset: "",
   exportFormat: "geojson",
   previewData: null,
+  previewWms: null,
   isLoading: false,
   downloads: [],
   sidebarOpen: true,
@@ -58,9 +61,9 @@ const initialState: AppState = {
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "SET_BBOX":
-      return { ...state, bbox: action.payload, previewData: null };
+      return { ...state, bbox: action.payload, previewData: null, previewWms: null };
     case "SET_SOURCE":
-      return { ...state, activeSource: action.payload, activeCategory: "", activePreset: "", previewData: null };
+      return { ...state, activeSource: action.payload, activeCategory: "", activePreset: "", previewData: null, previewWms: null };
     case "SET_CATEGORY":
       return { ...state, activeCategory: action.payload, activePreset: "", previewData: null };
     case "SET_PRESET":
@@ -68,7 +71,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_FORMAT":
       return { ...state, exportFormat: action.payload };
     case "SET_PREVIEW":
-      return { ...state, previewData: action.payload };
+      return { ...state, previewData: action.payload, previewWms: null };
+    case "SET_PREVIEW_WMS":
+      return { ...state, previewWms: action.payload, previewData: null };
     case "SET_LOADING":
       return { ...state, isLoading: action.payload };
     case "ADD_DOWNLOAD":
@@ -106,6 +111,7 @@ interface AppContextType {
   setPreset: (preset: string) => void;
   setFormat: (format: ExportFormat) => void;
   setPreview: (data: GeoJSON.FeatureCollection | null) => void;
+  setPreviewWms: (config: { url: string; layers: string } | null) => void;
   setLoading: (loading: boolean) => void;
   addDownload: (item: Omit<DownloadItem, "id">) => string;
   updateDownload: (id: string, updates: Partial<DownloadItem>) => void;
@@ -122,6 +128,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setPreset = useCallback((preset: string) => dispatch({ type: "SET_PRESET", payload: preset }), []);
   const setFormat = useCallback((format: ExportFormat) => dispatch({ type: "SET_FORMAT", payload: format }), []);
   const setPreview = useCallback((data: GeoJSON.FeatureCollection | null) => dispatch({ type: "SET_PREVIEW", payload: data }), []);
+  const setPreviewWms = useCallback((config: { url: string; layers: string } | null) => dispatch({ type: "SET_PREVIEW_WMS", payload: config }), []);
   const setLoading = useCallback((loading: boolean) => dispatch({ type: "SET_LOADING", payload: loading }), []);
 
   const addDownload = useCallback((item: Omit<DownloadItem, "id">) => {
@@ -136,7 +143,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, setBbox, setSource, setCategory, setPreset, setFormat, setPreview, setLoading, addDownload, updateDownload }}
+      value={{ state, dispatch, setBbox, setSource, setCategory, setPreset, setFormat, setPreview, setPreviewWms, setLoading, addDownload, updateDownload }}
     >
       {children}
     </AppContext.Provider>

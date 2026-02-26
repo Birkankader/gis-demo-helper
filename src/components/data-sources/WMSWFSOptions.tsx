@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/i18n/context";
+import { useAppStore } from "@/store/app-store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,8 @@ interface ServiceLayer {
 }
 
 export default function WMSWFSOptions() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const { state, setPreview, setPreviewWms } = useAppStore();
   const [serviceUrl, setServiceUrl] = useState("");
   const [serviceType, setServiceType] = useState<"wms" | "wfs">("wms");
   const [layers, setLayers] = useState<ServiceLayer[]>([]);
@@ -25,6 +27,8 @@ export default function WMSWFSOptions() {
     setIsLoading(true);
     setError("");
     setLayers([]);
+    setSelectedLayer("");
+    setPreviewWms(null);
 
     try {
       const separator = serviceUrl.includes("?") ? "&" : "?";
@@ -54,13 +58,57 @@ export default function WMSWFSOptions() {
     }
   };
 
+  const handleSelectLayer = (layerName: string) => {
+    const newSelection = selectedLayer === layerName ? "" : layerName;
+    setSelectedLayer(newSelection);
+
+    if (newSelection && serviceType === "wms") {
+      // Show WMS layer as overlay on the map
+      setPreviewWms({ url: serviceUrl, layers: newSelection });
+    } else {
+      setPreviewWms(null);
+    }
+  };
+
+  const handleWfsPreview = async () => {
+    if (!selectedLayer || !serviceUrl || serviceType !== "wfs") return;
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const separator = serviceUrl.includes("?") ? "&" : "?";
+      const bbox = state.bbox
+        ? `&bbox=${state.bbox.south},${state.bbox.west},${state.bbox.north},${state.bbox.east},EPSG:4326`
+        : "";
+      const getFeatureUrl = `${serviceUrl}${separator}service=WFS&request=GetFeature&typeName=${encodeURIComponent(selectedLayer)}&outputFormat=application/json&count=200${bbox}`;
+
+      const res = await fetch(`/api/geocode?proxy=${encodeURIComponent(getFeatureUrl)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const geojson = await res.json();
+      if (geojson.type === "FeatureCollection" && geojson.features?.length > 0) {
+        setPreview(geojson);
+      } else {
+        setError(locale === "tr" ? "Veri bulunamadı" : "No data found");
+      }
+    } catch (err: any) {
+      setError(err.message || (locale === "tr" ? "WFS verisi alınamadı" : "Failed to fetch WFS data"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-1 bg-secondary rounded-lg p-0.5">
         {(["wms", "wfs"] as const).map((type) => (
           <button
             key={type}
-            onClick={() => setServiceType(type)}
+            onClick={() => {
+              setServiceType(type);
+              setSelectedLayer("");
+              setPreviewWms(null);
+            }}
             className={cn(
               "flex-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors uppercase",
               serviceType === type
@@ -84,7 +132,7 @@ export default function WMSWFSOptions() {
           {isLoading ? (
             <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
           ) : (
-            t.common.loading.replace("...", "").trim() === "Yükleniyor" ? "Bağlan" : "Connect"
+            locale === "tr" ? "Bağlan" : "Connect"
           )}
         </Button>
       </div>
@@ -92,23 +140,56 @@ export default function WMSWFSOptions() {
       {error && <p className="text-xs text-destructive">{error}</p>}
 
       {layers.length > 0 && (
-        <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
-          {layers.map((layer) => (
-            <button
-              key={layer.name}
-              onClick={() => setSelectedLayer(selectedLayer === layer.name ? "" : layer.name)}
-              className={cn(
-                "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
-                selectedLayer === layer.name
-                  ? "bg-purple-500/10 text-purple-700 dark:text-purple-400 font-medium"
-                  : "hover:bg-accent text-foreground"
-              )}
+        <>
+          <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+            {layers.map((layer) => (
+              <button
+                key={layer.name}
+                onClick={() => handleSelectLayer(layer.name)}
+                className={cn(
+                  "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
+                  selectedLayer === layer.name
+                    ? "bg-purple-500/10 text-purple-700 dark:text-purple-400 font-medium"
+                    : "hover:bg-accent text-foreground"
+                )}
+              >
+                <div className="text-xs font-medium">{layer.title}</div>
+                <div className="text-[10px] text-muted-foreground">{layer.name}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* WMS: auto-previews on layer select. WFS: needs explicit fetch. */}
+          {selectedLayer && serviceType === "wms" && (
+            <div className="p-2 rounded-lg bg-purple-500/5 border border-purple-500/20">
+              <p className="text-[10px] text-purple-700 dark:text-purple-400">
+                {locale === "tr"
+                  ? "WMS katmanı haritada gösteriliyor"
+                  : "WMS layer is shown on the map"}
+              </p>
+            </div>
+          )}
+
+          {selectedLayer && serviceType === "wfs" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleWfsPreview}
+              disabled={isLoading}
+              className="w-full h-9"
             >
-              <div className="text-xs font-medium">{layer.title}</div>
-              <div className="text-[10px] text-muted-foreground">{layer.name}</div>
-            </button>
-          ))}
-        </div>
+              {isLoading ? (
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+              ) : (
+                <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+              {t.download.previewOnMap}
+            </Button>
+          )}
+        </>
       )}
     </div>
   );

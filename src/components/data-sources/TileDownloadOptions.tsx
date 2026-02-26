@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useI18n } from "@/i18n/context";
 import { useAppStore } from "@/store/app-store";
 import { tileSources } from "@/lib/tile-sources";
-import { countTiles, estimateTileSize } from "@/lib/tile-math";
+import { countTiles, estimateTileSize, bboxToTileRange, tileBounds } from "@/lib/tile-math";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -13,7 +13,7 @@ import { formatBytes } from "@/lib/utils";
 
 export default function TileDownloadOptions() {
   const { t, locale } = useI18n();
-  const { state, dispatch, addDownload, updateDownload } = useAppStore();
+  const { state, dispatch, addDownload, updateDownload, setPreview } = useAppStore();
   const [selectedSource, setSelectedSource] = useState("osm-standard");
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -30,6 +30,38 @@ export default function TileDownloadOptions() {
     topo: locale === "tr" ? "Topografik" : "Topographic",
     dark: locale === "tr" ? "Koyu" : "Dark",
     light: locale === "tr" ? "Açık" : "Light",
+  };
+
+  const handlePreview = () => {
+    if (!state.bbox) return;
+    // Show tile grid at min zoom level for coverage overview
+    const range = bboxToTileRange(state.bbox, state.tileZoomMin);
+    const features: GeoJSON.Feature[] = [];
+    for (let x = range.xMin; x <= range.xMax; x++) {
+      for (let y = range.yMin; y <= range.yMax; y++) {
+        const bounds = tileBounds({ z: state.tileZoomMin, x, y });
+        features.push({
+          type: "Feature",
+          properties: {
+            name: `z${state.tileZoomMin}/${x}/${y}`,
+            type: `Tile`,
+          },
+          geometry: {
+            type: "Polygon",
+            coordinates: [[
+              [bounds.west, bounds.south],
+              [bounds.east, bounds.south],
+              [bounds.east, bounds.north],
+              [bounds.west, bounds.north],
+              [bounds.west, bounds.south],
+            ]],
+          },
+        });
+        if (features.length >= 500) break;
+      }
+      if (features.length >= 500) break;
+    }
+    setPreview({ type: "FeatureCollection", features });
   };
 
   const handleDownload = async () => {
@@ -241,18 +273,33 @@ export default function TileDownloadOptions() {
         </div>
       )}
 
-      {/* Download button */}
-      <Button
-        size="sm"
-        onClick={handleDownload}
-        disabled={!state.bbox || tileCount === 0 || tileCount > 5000 || downloading}
-        className="w-full h-9"
-      >
-        <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-        </svg>
-        {t.download.downloadTiles}
-      </Button>
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handlePreview}
+          disabled={!state.bbox || tileCount === 0}
+          className="flex-1 h-9"
+        >
+          <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          {t.download.previewGrid}
+        </Button>
+        <Button
+          size="sm"
+          onClick={handleDownload}
+          disabled={!state.bbox || tileCount === 0 || tileCount > 5000 || downloading}
+          className="flex-1 h-9"
+        >
+          <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+          </svg>
+          {t.download.downloadTiles}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -11,6 +11,7 @@ interface DynamicMapProps {
   zoom?: number;
   bbox: BoundingBox | null;
   previewData: GeoJSON.FeatureCollection | null;
+  previewWms: { url: string; layers: string } | null;
   onBboxChange: (bbox: BoundingBox | null) => void;
   onMapReady?: (map: L.Map) => void;
 }
@@ -20,6 +21,7 @@ export default function DynamicMap({
   zoom = 6,
   bbox,
   previewData,
+  previewWms,
   onBboxChange,
   onMapReady,
 }: DynamicMapProps) {
@@ -28,6 +30,7 @@ export default function DynamicMap({
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const bboxRectRef = useRef<L.Rectangle | null>(null);
   const previewLayerRef = useRef<L.GeoJSON | null>(null);
+  const wmsLayerRef = useRef<L.TileLayer.WMS | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const drawStartRef = useRef<L.LatLng | null>(null);
   const drawRectRef = useRef<L.Rectangle | null>(null);
@@ -258,6 +261,26 @@ export default function DynamicMap({
       }).addTo(map);
     }
   }, [previewData]);
+
+  // Update WMS preview layer
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (wmsLayerRef.current) {
+      wmsLayerRef.current.remove();
+      wmsLayerRef.current = null;
+    }
+
+    if (previewWms) {
+      wmsLayerRef.current = L.tileLayer.wms(previewWms.url, {
+        layers: previewWms.layers,
+        format: "image/png",
+        transparent: true,
+        opacity: 0.7,
+      }).addTo(map);
+    }
+  }, [previewWms]);
 
   // Fly to location
   const flyTo = useCallback((lat: number, lng: number, zoom?: number) => {

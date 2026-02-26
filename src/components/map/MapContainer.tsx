@@ -19,10 +19,11 @@ const DynamicMapComponent = dynamic(() => import("./DynamicMap"), {
 interface MapWrapperProps {
   bbox: BoundingBox | null;
   previewData: GeoJSON.FeatureCollection | null;
+  previewWms: { url: string; layers: string } | null;
   onBboxChange: (bbox: BoundingBox | null) => void;
 }
 
-export default function MapWrapper({ bbox, previewData, onBboxChange }: MapWrapperProps) {
+export default function MapWrapper({ bbox, previewData, previewWms, onBboxChange }: MapWrapperProps) {
   const MapComponent = useMemo(() => DynamicMapComponent, []);
 
   return (
@@ -30,6 +31,7 @@ export default function MapWrapper({ bbox, previewData, onBboxChange }: MapWrapp
       <MapComponent
         bbox={bbox}
         previewData={previewData}
+        previewWms={previewWms}
         onBboxChange={onBboxChange}
       />
     </div>

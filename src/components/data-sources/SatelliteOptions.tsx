@@ -26,7 +26,7 @@ interface Scene {
 
 export default function SatelliteOptions() {
   const { locale } = useI18n();
-  const { state, addDownload, updateDownload } = useAppStore();
+  const { state, addDownload, updateDownload, setPreview } = useAppStore();
   const [selectedSource, setSelectedSource] = useState("sentinel2-cog");
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [searching, setSearching] = useState(false);
@@ -59,9 +59,36 @@ export default function SatelliteOptions() {
       }
 
       const data = await res.json();
-      setScenes(data.scenes || []);
+      const sceneList: Scene[] = data.scenes || [];
+      setScenes(sceneList);
 
-      if ((data.scenes || []).length === 0) {
+      // Show scene footprints on map
+      if (sceneList.length > 0) {
+        const features: GeoJSON.Feature[] = sceneList
+          .filter((s) => s.bbox && s.bbox.length >= 4)
+          .map((s) => ({
+            type: "Feature" as const,
+            properties: {
+              name: s.id,
+              type: `${s.platform || "Satellite"} - ${formatDate(s.datetime)}`,
+            },
+            geometry: {
+              type: "Polygon" as const,
+              coordinates: [[
+                [s.bbox![0], s.bbox![1]],
+                [s.bbox![2], s.bbox![1]],
+                [s.bbox![2], s.bbox![3]],
+                [s.bbox![0], s.bbox![3]],
+                [s.bbox![0], s.bbox![1]],
+              ]],
+            },
+          }));
+        if (features.length > 0) {
+          setPreview({ type: "FeatureCollection", features });
+        }
+      }
+
+      if (sceneList.length === 0) {
         setError(
           locale === "tr"
             ? "Bu alan ve filtrelere uygun uydu görüntüsü bulunamadı."

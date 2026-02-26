@@ -17,7 +17,7 @@ import { formatBytes } from "@/lib/utils";
 
 export default function ElevationOptions() {
   const { t, locale } = useI18n();
-  const { state, addDownload, updateDownload } = useAppStore();
+  const { state, addDownload, updateDownload, setPreview } = useAppStore();
   const [selectedSource, setSelectedSource] = useState("srtm-hgt");
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -27,6 +27,28 @@ export default function ElevationOptions() {
   const tiles = state.bbox ? getTerrainTilesForBbox(state.bbox, selectedSource) : [];
   const estPerTile = estimateTerrainTileSize(selectedSource);
   const estTotal = tiles.length * estPerTile;
+
+  const handlePreview = () => {
+    if (!state.bbox || tiles.length === 0) return;
+    const features: GeoJSON.Feature[] = tiles.map((tile) => ({
+      type: "Feature",
+      properties: {
+        name: tile.filename,
+        type: locale === "tr" ? source.nameTr : source.nameEn,
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [tile.lng, tile.lat],
+          [tile.lng + 1, tile.lat],
+          [tile.lng + 1, tile.lat + 1],
+          [tile.lng, tile.lat + 1],
+          [tile.lng, tile.lat],
+        ]],
+      },
+    }));
+    setPreview({ type: "FeatureCollection", features });
+  };
 
   const handleDownloadTile = async (tileFilename: string) => {
     if (!state.bbox) return;
@@ -200,17 +222,32 @@ export default function ElevationOptions() {
 
           {error && <p className="text-xs text-destructive">{error}</p>}
 
-          <Button
-            size="sm"
-            onClick={handleDownloadAll}
-            disabled={tiles.length === 0 || downloading}
-            className="w-full h-9"
-          >
-            <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-            </svg>
-            {locale === "tr" ? "Tümünü İndir" : "Download All"} ({tiles.length})
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreview}
+              disabled={tiles.length === 0}
+              className="flex-1 h-9"
+            >
+              <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              {t.download.previewCoverage}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleDownloadAll}
+              disabled={tiles.length === 0 || downloading}
+              className="flex-1 h-9"
+            >
+              <svg className="w-3.5 h-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              {locale === "tr" ? "Tümünü İndir" : "Download All"} ({tiles.length})
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="p-3 rounded-lg border border-dashed text-center">

@@ -113,6 +113,7 @@ export default function HomePage() {
           <MapWrapper
             bbox={state.bbox}
             previewData={state.previewData}
+            previewWms={state.previewWms}
             onBboxChange={setBbox}
           />
 
