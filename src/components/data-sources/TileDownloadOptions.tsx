@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useI18n } from "@/i18n/context";
 import { useAppStore } from "@/store/app-store";
-import { tileSources } from "@/lib/tile-sources";
-import { countTiles, estimateTileSize, bboxToTileRange, tileBounds } from "@/lib/tile-math";
+import { tileSources, resolveTileUrl } from "@/lib/tile-sources";
+import { countTiles, estimateTileSize, bboxToTiles, bboxToTileRange, tileBounds } from "@/lib/tile-math";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -75,7 +75,7 @@ export default function TileDownloadOptions() {
     }
 
     setDownloading(true);
-    setProgress(10);
+    setProgress(0);
     setError(null);
 
     const downloadId = addDownload({
@@ -89,72 +89,79 @@ export default function TileDownloadOptions() {
     });
 
     try {
-      const params = new URLSearchParams({
-        action: "download",
-        source: selectedSource,
-        south: state.bbox.south.toString(),
-        west: state.bbox.west.toString(),
-        north: state.bbox.north.toString(),
-        east: state.bbox.east.toString(),
-        zoomMin: state.tileZoomMin.toString(),
-        zoomMax: state.tileZoomMax.toString(),
-      });
+      const source = tileSources.find((s) => s.id === selectedSource);
+      if (!source) throw new Error("Unknown tile source");
 
-      setProgress(20);
-      updateDownload(downloadId, { progress: 20 });
+      const tiles = bboxToTiles(state.bbox, state.tileZoomMin, state.tileZoomMax);
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      let completed = 0;
+      let failed = 0;
 
-      const res = await fetch(`/api/tiles?${params}`);
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: "Download failed" }));
-        throw new Error(errData.error || `HTTP ${res.status}`);
+      // Download tiles in batches of 4 through the proxy
+      const BATCH_SIZE = 4;
+      for (let i = 0; i < tiles.length; i += BATCH_SIZE) {
+        const batch = tiles.slice(i, i + BATCH_SIZE);
+
+        await Promise.all(batch.map(async (tile) => {
+          const path = `${tile.z}/${tile.x}/${tile.y}.png`;
+          try {
+            // Use proxy endpoint to avoid CORS
+            const proxyUrl = `/api/tiles?action=proxy&source=${selectedSource}&z=${tile.z}&x=${tile.x}&y=${tile.y}`;
+            const res = await fetch(proxyUrl);
+            if (!res.ok) {
+              failed++;
+              return;
+            }
+            const blob = await res.blob();
+            zip.file(path, blob);
+            completed++;
+          } catch {
+            failed++;
+          }
+        }));
+
+        const pct = Math.round(((i + batch.length) / tiles.length) * 90);
+        setProgress(pct);
+        updateDownload(downloadId, { progress: pct });
       }
 
-      setProgress(70);
-      updateDownload(downloadId, { progress: 70 });
+      if (completed === 0) {
+        throw new Error(
+          locale === "tr"
+            ? "Hiçbir tile indirilemedi. Sunucu bağlantısını kontrol edin."
+            : "No tiles could be downloaded. Check server connectivity."
+        );
+      }
 
-      const data = await res.json();
+      setProgress(95);
+      updateDownload(downloadId, { progress: 95 });
 
-      // Create a simple JSON manifest + tile data for client-side use
-      const manifest = {
-        source: data.sourceName,
-        tileCount: data.tileCount,
-        successCount: data.successCount,
-        zoomRange: `${state.tileZoomMin}-${state.tileZoomMax}`,
-        bbox: state.bbox,
-        tiles: data.tiles.filter((t: any) => t.data).map((t: any) => ({
-          path: t.path,
-          size: t.data.length,
-        })),
-      };
-
-      // Trigger JSON download with manifest
-      const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
+      // Generate ZIP
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `tiles_${selectedSource}_z${state.tileZoomMin}-${state.tileZoomMax}_${Date.now()}.json`;
+      a.download = `tiles_${selectedSource}_z${state.tileZoomMin}-${state.tileZoomMax}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      // Also save individual tiles as downloadable links
-      for (const tile of data.tiles) {
-        if (tile.data) {
-          const tileBlob = new Blob(
-            [Uint8Array.from(atob(tile.data), (c) => c.charCodeAt(0))],
-            { type: "image/png" }
-          );
-          // Store in a downloadable manner
-        }
-      }
-
       setProgress(100);
       updateDownload(downloadId, {
         progress: 100,
         status: "completed",
-        size: blob.size,
+        size: zipBlob.size,
       });
+
+      if (failed > 0) {
+        setError(
+          locale === "tr"
+            ? `${completed} tile indirildi, ${failed} başarısız.`
+            : `${completed} tiles downloaded, ${failed} failed.`
+        );
+      }
 
       setTimeout(() => {
         setProgress(0);
