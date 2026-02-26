@@ -36,8 +36,12 @@ export const translations = {
         description: "SASPlanet gibi harita tile'larını indir (OSM, ESRI Uydu, Topo...)",
       },
       elevation: {
-        name: "Yükseklik (SRTM)",
-        description: "Ücretsiz SRTM yükseklik verisi (30m/90m) - API key gerekmez",
+        name: "Terrain / DEM",
+        description: "SRTM HGT, Copernicus DEM GeoTIFF (30m/90m) - API key gerekmez",
+      },
+      satellite: {
+        name: "Uydu Görüntüsü",
+        description: "Sentinel-2 / Landsat uydu görüntüleri (GeoTIFF) - ücretsiz",
       },
       geofabrik: {
         name: "Geofabrik",
@@ -84,6 +88,10 @@ export const translations = {
       downloadTiles: "Tile'ları İndir",
       srtmTiles: "SRTM Tile Sayısı",
       downloadSrtm: "SRTM İndir",
+      searchScenes: "Uydu Görüntüsü Ara",
+      downloadBand: "Band İndir",
+      maxCloud: "Maks Bulut",
+      noScenes: "Uydu görüntüsü bulunamadı",
     },
     formats: {
       geojson: "GeoJSON",
@@ -93,6 +101,8 @@ export const translations = {
       kml: "KML",
       tiles: "Tile Paketi",
       pbf: "OSM PBF",
+      hgt: "HGT (SRTM)",
+      dted: "DTED2",
     },
     settings: {
       title: "Ayarlar",
@@ -153,8 +163,12 @@ export const translations = {
         description: "Download map tiles like SASPlanet (OSM, ESRI Satellite, Topo...)",
       },
       elevation: {
-        name: "Elevation (SRTM)",
-        description: "Free SRTM elevation data (30m/90m) - no API key needed",
+        name: "Terrain / DEM",
+        description: "SRTM HGT, Copernicus DEM GeoTIFF (30m/90m) - no API key needed",
+      },
+      satellite: {
+        name: "Satellite Imagery",
+        description: "Sentinel-2 / Landsat satellite scenes (GeoTIFF) - free",
       },
       geofabrik: {
         name: "Geofabrik",
@@ -201,6 +215,10 @@ export const translations = {
       downloadTiles: "Download Tiles",
       srtmTiles: "SRTM Tile Count",
       downloadSrtm: "Download SRTM",
+      searchScenes: "Search Satellite Scenes",
+      downloadBand: "Download Band",
+      maxCloud: "Max Cloud",
+      noScenes: "No satellite scenes found",
     },
     formats: {
       geojson: "GeoJSON",
@@ -210,6 +228,8 @@ export const translations = {
       kml: "KML",
       tiles: "Tile Package",
       pbf: "OSM PBF",
+      hgt: "HGT (SRTM)",
+      dted: "DTED2",
     },
     settings: {
       title: "Settings",

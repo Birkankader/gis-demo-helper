@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSRTMTilesForBbox } from "@/lib/data-sources/srtm";
+import {
+  getTerrainTilesForBbox,
+  getTerrainFileExt,
+} from "@/lib/data-sources/terrain";
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -8,6 +11,7 @@ export async function GET(request: NextRequest) {
   const north = params.get("north");
   const east = params.get("east");
   const action = params.get("action") || "download";
+  const source = params.get("source") || "srtm-hgt";
 
   if (!south || !west || !north || !east) {
     return NextResponse.json(
@@ -33,27 +37,29 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const tiles = getSRTMTilesForBbox(bbox);
+  const tiles = getTerrainTilesForBbox(bbox, source);
 
-  // Action: list - just return the tile list (for preview/info)
+  // Action: list - return the tile list with metadata
   if (action === "list") {
     return NextResponse.json({
+      source,
       tileCount: tiles.length,
+      fileExt: getTerrainFileExt(source),
       tiles: tiles.map((t) => ({
         filename: t.filename,
         url: t.url,
         lat: t.lat,
         lng: t.lng,
+        format: t.format,
       })),
     });
   }
 
-  // Action: download - download a single SRTM tile
+  // Action: download - download a single terrain tile (proxy)
   if (action === "download") {
     const tileFilename = params.get("tile");
 
     if (tileFilename) {
-      // Download specific tile
       const tile = tiles.find((t) => t.filename === tileFilename);
       if (!tile) {
         return NextResponse.json({ error: `Tile not found: ${tileFilename}` }, { status: 404 });
@@ -66,33 +72,33 @@ export async function GET(request: NextRequest) {
 
         if (!res.ok) {
           return NextResponse.json(
-            { error: `Failed to fetch SRTM tile ${tile.filename} (${res.status}). This tile may not exist for ocean areas.` },
+            { error: `Failed to fetch terrain tile ${tile.filename} (${res.status}). This tile may not exist for ocean/polar areas.` },
             { status: 502 }
           );
         }
 
         const buffer = Buffer.from(await res.arrayBuffer());
-        const contentType = tile.url.endsWith(".gz")
-          ? "application/gzip"
-          : "application/octet-stream";
+        const ext = getTerrainFileExt(source);
+        const mime = tile.format === "tif" ? "image/tiff" :
+                     tile.url.endsWith(".gz") ? "application/gzip" : "application/octet-stream";
 
         return new NextResponse(buffer, {
           headers: {
-            "Content-Type": contentType,
-            "Content-Disposition": `attachment; filename="${tile.filename}.hgt.gz"`,
+            "Content-Type": mime,
+            "Content-Disposition": `attachment; filename="${tile.filename}${ext}"`,
             "Content-Length": buffer.length.toString(),
           },
         });
       } catch (err: any) {
         return NextResponse.json(
-          { error: `Failed to download SRTM tile: ${err.message}` },
+          { error: `Failed to download terrain tile: ${err.message}` },
           { status: 500 }
         );
       }
     }
 
-    // Download all tiles for bbox (one by one, return info)
-    const results: { filename: string; url: string; size?: number; error?: string }[] = [];
+    // No specific tile: check availability of all tiles via HEAD
+    const results: { filename: string; url: string; format: string; size?: number; error?: string }[] = [];
 
     for (const tile of tiles) {
       try {
@@ -103,16 +109,17 @@ export async function GET(request: NextRequest) {
 
         if (res.ok) {
           const size = parseInt(res.headers.get("content-length") || "0");
-          results.push({ filename: tile.filename, url: tile.url, size });
+          results.push({ filename: tile.filename, url: tile.url, format: tile.format, size });
         } else {
-          results.push({ filename: tile.filename, url: tile.url, error: `HTTP ${res.status}` });
+          results.push({ filename: tile.filename, url: tile.url, format: tile.format, error: `HTTP ${res.status}` });
         }
       } catch (err: any) {
-        results.push({ filename: tile.filename, url: tile.url, error: err.message });
+        results.push({ filename: tile.filename, url: tile.url, format: tile.format, error: err.message });
       }
     }
 
     return NextResponse.json({
+      source,
       tileCount: tiles.length,
       availableCount: results.filter((r) => !r.error).length,
       tiles: results,

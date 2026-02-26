@@ -8,14 +8,16 @@ import OSMOptions from "./OSMOptions";
 import NaturalEarthOptions from "./NaturalEarthOptions";
 import TileDownloadOptions from "./TileDownloadOptions";
 import ElevationOptions from "./ElevationOptions";
+import SatelliteOptions from "./SatelliteOptions";
 import GeofabrikOptions from "./GeofabrikOptions";
 import WMSWFSOptions from "./WMSWFSOptions";
 
 const sources: { id: DataSourceId; icon: string }[] = [
   { id: "osm", icon: "M" },
   { id: "tiles", icon: "T" },
-  { id: "natural-earth", icon: "N" },
   { id: "elevation", icon: "E" },
+  { id: "satellite", icon: "S" },
+  { id: "natural-earth", icon: "N" },
   { id: "geofabrik", icon: "G" },
   { id: "wms-wfs", icon: "W" },
 ];
@@ -29,6 +31,7 @@ export default function DataSourcePanel() {
     tiles: { name: t.sources.tiles.name, desc: t.sources.tiles.description },
     "natural-earth": { name: t.sources.naturalEarth.name, desc: t.sources.naturalEarth.description },
     elevation: { name: t.sources.elevation.name, desc: t.sources.elevation.description },
+    satellite: { name: t.sources.satellite.name, desc: t.sources.satellite.description },
     geofabrik: { name: t.sources.geofabrik.name, desc: t.sources.geofabrik.description },
     "wms-wfs": { name: t.sources.wmsWfs.name, desc: t.sources.wmsWfs.description },
   };
@@ -38,13 +41,14 @@ export default function DataSourcePanel() {
     tiles: "bg-violet-500",
     "natural-earth": "bg-blue-500",
     elevation: "bg-amber-500",
+    satellite: "bg-sky-500",
     geofabrik: "bg-orange-500",
     "wms-wfs": "bg-purple-500",
   };
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-4 sm:grid-cols-4 gap-1.5">
         {sources.map((s) => (
           <button
             key={s.id}
@@ -73,6 +77,7 @@ export default function DataSourcePanel() {
         {state.activeSource === "tiles" && <TileDownloadOptions />}
         {state.activeSource === "natural-earth" && <NaturalEarthOptions />}
         {state.activeSource === "elevation" && <ElevationOptions />}
+        {state.activeSource === "satellite" && <SatelliteOptions />}
         {state.activeSource === "geofabrik" && <GeofabrikOptions />}
         {state.activeSource === "wms-wfs" && <WMSWFSOptions />}
       </div>

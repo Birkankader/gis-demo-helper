@@ -18,7 +18,7 @@ export default function DownloadPanel() {
   const [error, setError] = useState<string | null>(null);
 
   // Sources with their own download UI built in
-  const selfDownloadSources = ["tiles", "elevation", "geofabrik"];
+  const selfDownloadSources = ["tiles", "elevation", "satellite", "geofabrik"];
   const isSelfDownload = selfDownloadSources.includes(state.activeSource);
 
   const canPreview = !!state.bbox && !!state.activePreset && !isSelfDownload;
