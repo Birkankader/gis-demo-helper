@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { BoundingBox } from "@/types/geo";
+import { tileSources, resolveTileUrl } from "@/lib/tile-sources";
 
 interface DynamicMapProps {
   center?: [number, number];
@@ -24,6 +25,7 @@ export default function DynamicMap({
 }: DynamicMapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const bboxRectRef = useRef<L.Rectangle | null>(null);
   const previewLayerRef = useRef<L.GeoJSON | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -42,9 +44,11 @@ export default function DynamicMap({
 
     L.control.zoom({ position: "topright" }).addTo(map);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
+    const defaultSource = tileSources[0];
+    tileLayerRef.current = L.tileLayer(defaultSource.url, {
+      attribution: defaultSource.attribution,
+      maxZoom: defaultSource.maxZoom,
+      subdomains: defaultSource.subdomains || "abc",
     }).addTo(map);
 
     mapRef.current = map;
@@ -188,15 +192,39 @@ export default function DynamicMap({
     mapRef.current?.flyTo([lat, lng], zoom ?? 13, { duration: 1.5 });
   }, []);
 
+  // Change basemap
+  const setBasemap = useCallback((sourceId: string) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const source = tileSources.find((s) => s.id === sourceId);
+    if (!source) return;
+
+    if (tileLayerRef.current) {
+      tileLayerRef.current.remove();
+    }
+
+    tileLayerRef.current = L.tileLayer(source.url, {
+      attribution: source.attribution,
+      maxZoom: source.maxZoom,
+      subdomains: source.subdomains || "abc",
+    }).addTo(map);
+
+    // Move tile layer to bottom
+    tileLayerRef.current.bringToBack();
+  }, []);
+
   // Expose functions via ref
   useEffect(() => {
     (window as any).__gisMapFlyTo = flyTo;
     (window as any).__gisMapStartDraw = startDraw;
+    (window as any).__gisMapSetBasemap = setBasemap;
     return () => {
       delete (window as any).__gisMapFlyTo;
       delete (window as any).__gisMapStartDraw;
+      delete (window as any).__gisMapSetBasemap;
     };
-  }, [flyTo, startDraw]);
+  }, [flyTo, startDraw, setBasemap]);
 
   return (
     <div className="relative w-full h-full">

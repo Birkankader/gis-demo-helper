@@ -17,8 +17,12 @@ export default function DownloadPanel() {
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const canPreview = !!state.bbox && !!state.activePreset && state.activeSource !== "elevation";
-  const canDownload = !!state.bbox && !!state.activePreset;
+  // Sources with their own download UI built in
+  const selfDownloadSources = ["tiles", "elevation", "geofabrik"];
+  const isSelfDownload = selfDownloadSources.includes(state.activeSource);
+
+  const canPreview = !!state.bbox && !!state.activePreset && !isSelfDownload;
+  const canDownload = !!state.bbox && !!state.activePreset && !isSelfDownload;
 
   const formatOptions = state.activeSource === "elevation"
     ? [{ value: "geotiff", label: t.formats.geotiff }]
@@ -154,6 +158,37 @@ export default function DownloadPanel() {
       setDownloadProgress(null);
     }
   };
+
+  // For sources with built-in download UI, show only bbox info
+  if (isSelfDownload) {
+    return (
+      <div className="space-y-3">
+        {state.bbox ? (
+          <div className="p-2.5 rounded-lg bg-muted/50 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">{t.map.selectedArea}</span>
+              <Badge variant="outline" className="text-[10px]">
+                {bboxAreaKm2(state.bbox).toFixed(0)} km²
+              </Badge>
+            </div>
+            <div className="text-[10px] text-muted-foreground font-mono">
+              {state.bbox.south.toFixed(4)}, {state.bbox.west.toFixed(4)} →{" "}
+              {state.bbox.north.toFixed(4)}, {state.bbox.east.toFixed(4)}
+            </div>
+          </div>
+        ) : (
+          <div className="p-3 rounded-lg border border-dashed text-center">
+            <p className="text-xs text-muted-foreground">{t.map.noAreaSelected}</p>
+          </div>
+        )}
+        <p className="text-[10px] text-muted-foreground text-center">
+          {locale === "tr"
+            ? "İndirme seçenekleri yukarıdaki panelde"
+            : "Download options are in the panel above"}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

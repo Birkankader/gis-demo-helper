@@ -4,7 +4,7 @@ export const translations = {
   tr: {
     app: {
       title: "GIS Veri Yardımcısı",
-      subtitle: "Demo verilerinizi kolayca bulun ve indirin",
+      subtitle: "Demo verilerinizi kolayca bulun ve indirin - API key gerekmez",
     },
     nav: {
       dataSources: "Veri Kaynakları",
@@ -20,6 +20,7 @@ export const translations = {
       noAreaSelected: "Haritada bir alan seçin",
       zoomIn: "Yakınlaştır",
       zoomOut: "Uzaklaştır",
+      basemap: "Altlık Harita",
     },
     sources: {
       osm: {
@@ -30,12 +31,20 @@ export const translations = {
         name: "Natural Earth",
         description: "Ülke sınırları, kıyı çizgileri, nehirler",
       },
+      tiles: {
+        name: "Tile İndir",
+        description: "SASPlanet gibi harita tile'larını indir (OSM, ESRI Uydu, Topo...)",
+      },
       elevation: {
-        name: "Yükseklik Verisi",
-        description: "DEM ve yükseklik modelleri (SRTM, COP)",
+        name: "Yükseklik (SRTM)",
+        description: "Ücretsiz SRTM yükseklik verisi (30m/90m) - API key gerekmez",
+      },
+      geofabrik: {
+        name: "Geofabrik",
+        description: "Ülke bazlı OSM verileri (Shapefile/PBF)",
       },
       wmsWfs: {
-        name: "WMS/WFS Servisleri",
+        name: "WMS/WFS",
         description: "Özel harita servisleri bağlantısı",
       },
     },
@@ -68,6 +77,13 @@ export const translations = {
       history: "İndirme Geçmişi",
       clearHistory: "Geçmişi Temizle",
       redownload: "Tekrar İndir",
+      tileCount: "Tile Sayısı",
+      zoomRange: "Zoom Aralığı",
+      estimatedSize: "Tahmini Boyut",
+      selectTileSource: "Tile kaynağı seçin",
+      downloadTiles: "Tile'ları İndir",
+      srtmTiles: "SRTM Tile Sayısı",
+      downloadSrtm: "SRTM İndir",
     },
     formats: {
       geojson: "GeoJSON",
@@ -75,6 +91,8 @@ export const translations = {
       geopackage: "GeoPackage",
       geotiff: "GeoTIFF",
       kml: "KML",
+      tiles: "Tile Paketi",
+      pbf: "OSM PBF",
     },
     settings: {
       title: "Ayarlar",
@@ -97,12 +115,13 @@ export const translations = {
       type: "Tür",
       name: "Ad",
       all: "Tümü",
+      noApiKey: "API key gerekmez",
     },
   },
   en: {
     app: {
       title: "GIS Data Helper",
-      subtitle: "Find and download your demo data easily",
+      subtitle: "Find and download your demo data easily - no API key needed",
     },
     nav: {
       dataSources: "Data Sources",
@@ -118,6 +137,7 @@ export const translations = {
       noAreaSelected: "Select an area on the map",
       zoomIn: "Zoom In",
       zoomOut: "Zoom Out",
+      basemap: "Basemap",
     },
     sources: {
       osm: {
@@ -128,12 +148,20 @@ export const translations = {
         name: "Natural Earth",
         description: "Country boundaries, coastlines, rivers",
       },
+      tiles: {
+        name: "Tile Download",
+        description: "Download map tiles like SASPlanet (OSM, ESRI Satellite, Topo...)",
+      },
       elevation: {
-        name: "Elevation Data",
-        description: "DEM and elevation models (SRTM, COP)",
+        name: "Elevation (SRTM)",
+        description: "Free SRTM elevation data (30m/90m) - no API key needed",
+      },
+      geofabrik: {
+        name: "Geofabrik",
+        description: "Country-level OSM data extracts (Shapefile/PBF)",
       },
       wmsWfs: {
-        name: "WMS/WFS Services",
+        name: "WMS/WFS",
         description: "Custom map service connections",
       },
     },
@@ -166,6 +194,13 @@ export const translations = {
       history: "Download History",
       clearHistory: "Clear History",
       redownload: "Re-download",
+      tileCount: "Tile Count",
+      zoomRange: "Zoom Range",
+      estimatedSize: "Estimated Size",
+      selectTileSource: "Select tile source",
+      downloadTiles: "Download Tiles",
+      srtmTiles: "SRTM Tile Count",
+      downloadSrtm: "Download SRTM",
     },
     formats: {
       geojson: "GeoJSON",
@@ -173,6 +208,8 @@ export const translations = {
       geopackage: "GeoPackage",
       geotiff: "GeoTIFF",
       kml: "KML",
+      tiles: "Tile Package",
+      pbf: "OSM PBF",
     },
     settings: {
       title: "Settings",
@@ -195,6 +232,7 @@ export const translations = {
       type: "Type",
       name: "Name",
       all: "All",
+      noApiKey: "No API key needed",
     },
   },
 };

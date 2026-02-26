@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import Header from "@/components/layout/Header";
 import MapWrapper from "@/components/map/MapContainer";
+import BasemapSwitcher from "@/components/map/BasemapSwitcher";
 import LocationSearch from "@/components/search/LocationSearch";
 import DataSourcePanel from "@/components/data-sources/DataSourcePanel";
 import DownloadPanel from "@/components/download/DownloadPanel";
@@ -110,6 +111,9 @@ export default function HomePage() {
             previewData={state.previewData}
             onBboxChange={setBbox}
           />
+
+          {/* Basemap switcher */}
+          <BasemapSwitcher />
 
           {/* Loading overlay */}
           {state.isLoading && (

@@ -17,6 +17,9 @@ interface AppState {
   downloads: DownloadItem[];
   sidebarOpen: boolean;
   theme: "light" | "dark" | "system";
+  basemap: string;
+  tileZoomMin: number;
+  tileZoomMax: number;
 }
 
 type AppAction =
@@ -32,7 +35,9 @@ type AppAction =
   | { type: "REMOVE_DOWNLOAD"; payload: string }
   | { type: "CLEAR_DOWNLOADS" }
   | { type: "TOGGLE_SIDEBAR" }
-  | { type: "SET_THEME"; payload: "light" | "dark" | "system" };
+  | { type: "SET_THEME"; payload: "light" | "dark" | "system" }
+  | { type: "SET_BASEMAP"; payload: string }
+  | { type: "SET_TILE_ZOOM"; payload: { min: number; max: number } };
 
 const initialState: AppState = {
   bbox: null,
@@ -45,6 +50,9 @@ const initialState: AppState = {
   downloads: [],
   sidebarOpen: true,
   theme: "system",
+  basemap: "osm-standard",
+  tileZoomMin: 10,
+  tileZoomMax: 14,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -80,6 +88,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, sidebarOpen: !state.sidebarOpen };
     case "SET_THEME":
       return { ...state, theme: action.payload };
+    case "SET_BASEMAP":
+      return { ...state, basemap: action.payload };
+    case "SET_TILE_ZOOM":
+      return { ...state, tileZoomMin: action.payload.min, tileZoomMax: action.payload.max };
     default:
       return state;
   }

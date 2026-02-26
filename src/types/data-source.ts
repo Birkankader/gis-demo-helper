@@ -1,6 +1,6 @@
 import { BoundingBox } from "./geo";
 
-export type DataSourceId = "osm" | "natural-earth" | "elevation" | "wms-wfs";
+export type DataSourceId = "osm" | "natural-earth" | "tiles" | "elevation" | "geofabrik" | "wms-wfs";
 
 export interface DataSource {
   id: DataSourceId;
@@ -40,7 +40,7 @@ export interface DataRequest {
   options?: Record<string, string>;
 }
 
-export type ExportFormat = "geojson" | "shapefile" | "geopackage" | "geotiff" | "kml";
+export type ExportFormat = "geojson" | "shapefile" | "geopackage" | "geotiff" | "kml" | "tiles" | "pbf";
 
 export interface DataResult {
   id: string;
