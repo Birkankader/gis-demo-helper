@@ -50,16 +50,16 @@ export default function DataSourcePanel() {
             key={s.id}
             onClick={() => setSource(s.id)}
             className={cn(
-              "flex flex-col items-center gap-1 p-2 rounded-lg border text-center transition-all",
+              "flex flex-col items-center gap-1 p-2.5 sm:p-2 rounded-lg border text-center transition-all min-h-[60px]",
               state.activeSource === s.id
                 ? "border-primary bg-primary/5 shadow-sm"
-                : "border-transparent hover:bg-accent"
+                : "border-transparent hover:bg-accent active:bg-accent"
             )}
           >
-            <div className={cn("w-7 h-7 rounded-md flex items-center justify-center text-white text-xs font-bold", iconColors[s.id])}>
+            <div className={cn("w-8 h-8 sm:w-7 sm:h-7 rounded-md flex items-center justify-center text-white text-xs font-bold", iconColors[s.id])}>
               {s.icon}
             </div>
-            <span className="text-[10px] font-medium leading-tight truncate w-full">{sourceNames[s.id].name}</span>
+            <span className="text-[11px] sm:text-[10px] font-medium leading-tight truncate w-full">{sourceNames[s.id].name}</span>
           </button>
         ))}
       </div>

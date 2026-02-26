@@ -39,10 +39,10 @@ export default function BasemapSwitcher() {
             }}
             title={locale === "tr" ? source.nameTr : source.nameEn}
             className={cn(
-              "w-8 h-8 rounded-md flex items-center justify-center text-[10px] font-bold transition-all",
+              "w-10 h-10 sm:w-8 sm:h-8 rounded-md flex items-center justify-center text-xs sm:text-[10px] font-bold transition-all",
               state.basemap === source.id
                 ? cn(typeColors[source.type], "text-white ring-2 ring-primary ring-offset-1")
-                : "bg-muted text-muted-foreground hover:bg-accent"
+                : "bg-muted text-muted-foreground hover:bg-accent active:bg-accent"
             )}
           >
             {typeIcons[source.type] || "?"}

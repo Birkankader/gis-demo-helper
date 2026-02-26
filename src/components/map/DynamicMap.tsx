@@ -60,66 +60,138 @@ export default function DynamicMap({
     };
   }, []);
 
-  // Bbox drawing handlers
-  const startDraw = useCallback(() => {
+  // Convert a DOM touch/mouse point to map latlng
+  const pointToLatLng = useCallback((clientX: number, clientY: number): L.LatLng | null => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map) return null;
+    const rect = map.getContainer().getBoundingClientRect();
+    const point = L.point(clientX - rect.left, clientY - rect.top);
+    return map.containerPointToLatLng(point);
+  }, []);
 
-    setIsDrawing(true);
-    map.dragging.disable();
-    map.getContainer().style.cursor = "crosshair";
+  // Shared drawing logic
+  const finishDraw = useCallback((endLatLng: L.LatLng) => {
+    const map = mapRef.current;
+    if (!map || !drawStartRef.current) return;
 
-    const onMouseDown = (e: L.LeafletMouseEvent) => {
-      drawStartRef.current = e.latlng;
-    };
+    const bounds = L.latLngBounds(drawStartRef.current, endLatLng);
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
 
-    const onMouseMove = (e: L.LeafletMouseEvent) => {
-      if (!drawStartRef.current) return;
-      const bounds = L.latLngBounds(drawStartRef.current, e.latlng);
-      if (drawRectRef.current) {
-        drawRectRef.current.setBounds(bounds);
-      } else {
-        drawRectRef.current = L.rectangle(bounds, {
-          color: "#3b82f6",
-          weight: 2,
-          fillOpacity: 0.1,
-          dashArray: "5,5",
-        }).addTo(map);
-      }
-    };
-
-    const onMouseUp = (e: L.LeafletMouseEvent) => {
-      if (!drawStartRef.current) return;
-      const bounds = L.latLngBounds(drawStartRef.current, e.latlng);
-      const sw = bounds.getSouthWest();
-      const ne = bounds.getNorthEast();
-
+    // Only register if the area is meaningful (not just a tap)
+    const sizeDeg = Math.abs(ne.lat - sw.lat) + Math.abs(ne.lng - sw.lng);
+    if (sizeDeg > 0.001) {
       onBboxChange({
         south: sw.lat,
         west: sw.lng,
         north: ne.lat,
         east: ne.lng,
       });
+    }
 
-      // Cleanup
-      if (drawRectRef.current) {
-        drawRectRef.current.remove();
-        drawRectRef.current = null;
+    // Cleanup drawing rect
+    if (drawRectRef.current) {
+      drawRectRef.current.remove();
+      drawRectRef.current = null;
+    }
+    drawStartRef.current = null;
+
+    // Re-enable map interactions
+    map.dragging.enable();
+    if ((map as any).touchZoom) (map as any).touchZoom.enable();
+    if ((map as any).bounceAtZoomLimits) (map as any).bounceAtZoomLimits = true;
+    map.getContainer().classList.remove("drawing-mode");
+    setIsDrawing(false);
+  }, [onBboxChange]);
+
+  const updateDrawRect = useCallback((currentLatLng: L.LatLng) => {
+    const map = mapRef.current;
+    if (!map || !drawStartRef.current) return;
+
+    const bounds = L.latLngBounds(drawStartRef.current, currentLatLng);
+    if (drawRectRef.current) {
+      drawRectRef.current.setBounds(bounds);
+    } else {
+      drawRectRef.current = L.rectangle(bounds, {
+        color: "#3b82f6",
+        weight: 2,
+        fillOpacity: 0.1,
+        dashArray: "5,5",
+      }).addTo(map);
+    }
+  }, []);
+
+  // Bbox drawing handlers (mouse + touch)
+  const startDraw = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    setIsDrawing(true);
+    map.dragging.disable();
+    if ((map as any).touchZoom) (map as any).touchZoom.disable();
+    map.getContainer().classList.add("drawing-mode");
+
+    const container = map.getContainer();
+
+    // --- Mouse events (desktop) ---
+    const onMouseDown = (e: L.LeafletMouseEvent) => {
+      drawStartRef.current = e.latlng;
+    };
+    const onMouseMove = (e: L.LeafletMouseEvent) => {
+      if (!drawStartRef.current) return;
+      updateDrawRect(e.latlng);
+    };
+    const onMouseUp = (e: L.LeafletMouseEvent) => {
+      if (!drawStartRef.current) return;
+      cleanup();
+      finishDraw(e.latlng);
+    };
+
+    // --- Touch events (mobile) ---
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const latlng = pointToLatLng(touch.clientX, touch.clientY);
+      if (latlng) drawStartRef.current = latlng;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!drawStartRef.current || e.touches.length !== 1) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const latlng = pointToLatLng(touch.clientX, touch.clientY);
+      if (latlng) updateDrawRect(latlng);
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!drawStartRef.current) return;
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      const latlng = pointToLatLng(touch.clientX, touch.clientY);
+      if (latlng) {
+        cleanup();
+        finishDraw(latlng);
       }
-      drawStartRef.current = null;
-      map.dragging.enable();
-      map.getContainer().style.cursor = "";
-      setIsDrawing(false);
+    };
 
+    const cleanup = () => {
       map.off("mousedown", onMouseDown);
       map.off("mousemove", onMouseMove);
       map.off("mouseup", onMouseUp);
+      container.removeEventListener("touchstart", onTouchStart);
+      container.removeEventListener("touchmove", onTouchMove);
+      container.removeEventListener("touchend", onTouchEnd);
     };
 
+    // Bind mouse events via Leaflet
     map.on("mousedown", onMouseDown);
     map.on("mousemove", onMouseMove);
     map.on("mouseup", onMouseUp);
-  }, [onBboxChange]);
+
+    // Bind touch events via DOM (Leaflet doesn't expose these directly)
+    container.addEventListener("touchstart", onTouchStart, { passive: false });
+    container.addEventListener("touchmove", onTouchMove, { passive: false });
+    container.addEventListener("touchend", onTouchEnd, { passive: false });
+  }, [onBboxChange, pointToLatLng, updateDrawRect, finishDraw]);
 
   // Update bbox rectangle on map
   useEffect(() => {
@@ -231,7 +303,8 @@ export default function DynamicMap({
       <div ref={containerRef} className="w-full h-full" />
       {isDrawing && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-sm font-medium shadow-lg animate-pulse">
-          Click and drag to select area
+          <span className="hidden sm:inline">Click and drag to select area</span>
+          <span className="sm:hidden">Parmağınızla sürükleyerek alan seçin</span>
         </div>
       )}
     </div>
