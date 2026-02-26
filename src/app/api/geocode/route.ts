@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { robustFetch } from "@/lib/fetch";
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -7,7 +8,7 @@ export async function GET(request: NextRequest) {
   const proxyUrl = params.get("proxy");
   if (proxyUrl) {
     try {
-      const res = await fetch(proxyUrl);
+      const res = await robustFetch(proxyUrl, { timeout: 20_000 });
       const text = await res.text();
       return new NextResponse(text, {
         headers: { "Content-Type": res.headers.get("Content-Type") || "text/xml" },
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const res = await fetch(
+    const res = await robustFetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`,
       {
         headers: {

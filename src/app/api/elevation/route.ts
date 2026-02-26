@@ -3,6 +3,7 @@ import {
   getTerrainTilesForBbox,
   getTerrainFileExt,
 } from "@/lib/data-sources/terrain";
+import { robustFetch } from "@/lib/fetch";
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -66,8 +67,9 @@ export async function GET(request: NextRequest) {
       }
 
       try {
-        const res = await fetch(tile.url, {
+        const res = await robustFetch(tile.url, {
           headers: { "User-Agent": "GIS-Demo-Helper/1.0" },
+          timeout: 120_000,
         });
 
         if (!res.ok) {
@@ -102,9 +104,11 @@ export async function GET(request: NextRequest) {
 
     for (const tile of tiles) {
       try {
-        const res = await fetch(tile.url, {
+        const res = await robustFetch(tile.url, {
           method: "HEAD",
           headers: { "User-Agent": "GIS-Demo-Helper/1.0" },
+          timeout: 10_000,
+          retries: 1,
         });
 
         if (res.ok) {

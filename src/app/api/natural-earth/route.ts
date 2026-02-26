@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { naturalEarthDatasets, getNaturalEarthUrl } from "@/lib/data-sources/natural-earth";
+import { robustFetch } from "@/lib/fetch";
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   const url = getNaturalEarthUrl(dataset, effectiveScale);
 
   try {
-    const res = await fetch(url, {
+    const res = await robustFetch(url, {
       headers: { "Accept": "application/json" },
     });
 

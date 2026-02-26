@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { robustFetch } from "@/lib/fetch";
 
 // Sentinel-2 STAC via Element84 Earth Search (no auth needed)
 const EARTH_SEARCH_API = "https://earth-search.aws.element84.com/v1";
@@ -27,8 +28,9 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const res = await fetch(fileUrl, {
+      const res = await robustFetch(fileUrl, {
         headers: { "User-Agent": "GIS-Demo-Helper/1.0" },
+        timeout: 120_000,
       });
 
       if (!res.ok) {
@@ -90,7 +92,7 @@ export async function GET(request: NextRequest) {
         sortby: [{ field: "properties.datetime", direction: "desc" }],
       };
 
-      const res = await fetch(`${EARTH_SEARCH_API}/search`, {
+      const res = await robustFetch(`${EARTH_SEARCH_API}/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -148,7 +150,7 @@ export async function GET(request: NextRequest) {
         },
       };
 
-      const res = await fetch("https://landsatlook.usgs.gov/stac-server/search", {
+      const res = await robustFetch("https://landsatlook.usgs.gov/stac-server/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

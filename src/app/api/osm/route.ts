@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { osmPresets } from "@/lib/data-sources/overpass";
+import { robustFetch } from "@/lib/fetch";
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -39,10 +40,11 @@ export async function GET(request: NextRequest) {
   const overpassUrl = process.env.OVERPASS_API_URL || "https://overpass-api.de/api/interpreter";
 
   try {
-    const res = await fetch(overpassUrl, {
+    const res = await robustFetch(overpassUrl, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: `data=${encodeURIComponent(overpassQuery)}`,
+      timeout: 60_000,
     });
 
     if (!res.ok) {
